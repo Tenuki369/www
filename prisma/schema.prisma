@@ -59,6 +59,7 @@ model Tenant {
   tiers       TenantTier[]
   workspaces  Workspace[]
   intake      IntakeSubmission[]
+  auditLogs   AuditLog[]
 }
 
 model User {
@@ -133,7 +134,8 @@ model ServiceTier {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  tenantTiers TenantTier[]
+  tenantTiers     TenantTier[]
+  membershipTiers MembershipTier[]
 }
 
 model TenantTier {

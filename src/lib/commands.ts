@@ -10,6 +10,8 @@ export type CommandCategory =
 
 export type CommandIntent = 'navigate' | 'create' | 'search' | 'approve' | 'open' | 'run';
 
+export type CommandActionId = 'logout';
+
 export interface CommandRegistryItem {
   id: string;
   title: string;
@@ -19,7 +21,10 @@ export interface CommandRegistryItem {
   shortcut?: string[];
   allowedTiers: ServiceTier[];
   keywords?: string[];
-  href: string;
+  /** Set for navigation commands. Mutually exclusive with actionId. */
+  href?: string;
+  /** Set for behavior commands dispatched by the centralized handler. */
+  actionId?: CommandActionId;
   scope: 'global' | 'tenant' | 'pillar';
 }
 
@@ -104,6 +109,17 @@ export const commandRegistry: CommandRegistryItem[] = [
     allowedTiers: ['ALL_INCLUSIVE', 'FINANCIAL', 'ADVISORY', 'INFRASTRUCTURE', 'LOGISTICS'],
     keywords: ['tenant', 'preferences', 'access'],
     href: '/settings',
+    scope: 'tenant',
+  },
+  {
+    id: 'action-logout',
+    title: 'Log out',
+    subtitle: 'End the demo session',
+    category: 'Settings',
+    intent: 'run',
+    allowedTiers: ['ALL_INCLUSIVE', 'FINANCIAL', 'ADVISORY', 'INFRASTRUCTURE', 'LOGISTICS'],
+    keywords: ['sign out', 'exit', 'logout', 'leave'],
+    actionId: 'logout',
     scope: 'tenant',
   },
 ];

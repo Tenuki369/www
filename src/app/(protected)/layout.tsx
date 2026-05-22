@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 import { getUserSession } from '@/lib/auth';
+import { endDemoSession } from '@/lib/session-actions';
 import { CommandPalette } from '@/components/command-palette';
 
 const navItems = [
@@ -62,8 +63,18 @@ export default async function ProtectedLayout({ children }: Readonly<{ children:
                   {user.tier.replace('_', ' ')} · {user.email}
                 </p>
               </div>
-              <div className="text-xs text-[rgb(var(--muted))]">
-                Press <span className="font-semibold text-white">Cmd+K</span> to open the command palette
+              <div className="flex items-center gap-4 text-xs text-[rgb(var(--muted))]">
+                <span>
+                  Press <span className="font-semibold text-white">Cmd+K</span> to open the command palette
+                </span>
+                <form action={endDemoSession}>
+                  <button
+                    type="submit"
+                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white transition hover:bg-white/10"
+                  >
+                    Log out
+                  </button>
+                </form>
               </div>
             </div>
           </div>

@@ -1,8 +1,21 @@
-export default function InfrastructureWorkspacePage() {
+import { getUserSession } from '@/lib/auth';
+import { listAgentSummaries } from '@/lib/agents/registry';
+import { AgentStudio } from '@/components/agent-studio';
+
+export default async function InfrastructureWorkspacePage() {
+  const user = await getUserSession();
+  const tier = user?.tier ?? null;
+
+  // Show agents the active tier is entitled to run.
+  const agents = listAgentSummaries().filter(
+    (agent) =>
+      tier === 'ALL_INCLUSIVE' || agent.pillar === 'ALL_INCLUSIVE' || agent.pillar === tier,
+  );
+
   const signals = [
     { label: 'API endpoints', value: '18' },
     { label: 'Automations live', value: '11' },
-    { label: 'Agent runs today', value: '42' },
+    { label: 'Agents available', value: String(agents.length) },
     { label: 'Incidents', value: '1' },
   ];
 
@@ -27,13 +40,21 @@ export default function InfrastructureWorkspacePage() {
             </article>
           ))}
         </div>
+      </section>
 
-        <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-5">
-          <p className="text-sm font-semibold text-white">Workspace actions</p>
-          <p className="mt-2 text-sm leading-6 text-[rgb(var(--muted))]">
-            API registry, command orchestration, and workflow publishing will live here next.
+      <section className="mt-6 rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.24)]">
+        <div className="mb-6">
+          <p className="text-xs font-semibold tracking-[0.24em] text-[rgb(var(--accent))] uppercase">
+            Multi-Agent Workflow Studio
+          </p>
+          <h2 className="mt-2 text-2xl font-black tracking-tight text-white">Run an agent</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[rgb(var(--muted))]">
+            Configured agents run server-side on Claude with their role, guardrails, and tools. Review the
+            reasoning and tool trace before acting on the result.
           </p>
         </div>
+
+        <AgentStudio agents={agents} />
       </section>
     </main>
   );

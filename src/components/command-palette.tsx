@@ -4,10 +4,11 @@ import * as React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Command } from 'cmdk';
 import type { ServiceTier } from '@/lib/auth';
+import { endDemoSession } from '@/lib/session-actions';
 import {
-  commandRegistry,
   getAvailableCommands,
   rankCommands,
+  type CommandActionId,
   type CommandCategory,
   type CommandRegistryItem,
 } from '@/lib/commands';
@@ -32,6 +33,7 @@ function getSearchableText(command: CommandRegistryItem) {
     command.keywords?.join(' '),
     command.href,
     command.category,
+    command.intent,
   ]
     .filter(Boolean)
     .join(' ')
@@ -85,10 +87,27 @@ export function CommandPalette({ tier }: CommandPaletteProps) {
     }, {} as Record<CommandCategory, typeof rankedCommands>);
   }, [rankedCommands]);
 
+  // Centralized dispatcher: registry items carry metadata only; behavior lives here.
+  const dispatchAction = React.useCallback((actionId: CommandActionId) => {
+    switch (actionId) {
+      case 'logout':
+        void endDemoSession();
+        return;
+    }
+  }, []);
+
   const handleSelect = (command: CommandRegistryItem) => {
-    router.push(command.href);
     setOpen(false);
     setSearch('');
+
+    if (command.href) {
+      router.push(command.href);
+      return;
+    }
+
+    if (command.actionId) {
+      dispatchAction(command.actionId);
+    }
   };
 
   if (!open) {
