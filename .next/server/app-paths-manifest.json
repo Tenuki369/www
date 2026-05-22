@@ -1,0 +1,11 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/(protected)/dashboard/advisory/page": "app/(protected)/dashboard/advisory/page.js",
+  "/(public)/page": "app/(public)/page.js",
+  "/(public)/intake/page": "app/(public)/intake/page.js",
+  "/(protected)/dashboard/page": "app/(protected)/dashboard/page.js",
+  "/(protected)/dashboard/financial/page": "app/(protected)/dashboard/financial/page.js",
+  "/(protected)/dashboard/logistics/page": "app/(protected)/dashboard/logistics/page.js",
+  "/(public)/login/page": "app/(public)/login/page.js",
+  "/(protected)/dashboard/infrastructure/page": "app/(protected)/dashboard/infrastructure/page.js"
+}

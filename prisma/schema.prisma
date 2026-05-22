@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ServiceTierKey {
+  FINANCIAL
+  ADVISORY
+  INFRASTRUCTURE
+  LOGISTICS
+  ALL_INCLUSIVE
+}
+
+enum MembershipStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}
+
+enum RoleKey {
+  OWNER
+  ADMIN
+  OPERATOR
+  ANALYST
+  ADVISOR
+  DISPATCHER
+  DEVELOPER
+  AUDITOR
+}
+
+enum PermissionKey {
+  TENANT_READ
+  TENANT_WRITE
+  USER_MANAGE
+  FINANCIAL_READ
+  FINANCIAL_WRITE
+  ADVISORY_READ
+  ADVISORY_WRITE
+  INFRA_READ
+  INFRA_WRITE
+  LOGISTICS_READ
+  LOGISTICS_WRITE
+  ADMIN_ACCESS
+}
+
+model Tenant {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String       @unique
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  memberships Membership[]
+  tiers       TenantTier[]
+  workspaces  Workspace[]
+  intake      IntakeSubmission[]
+}
+
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  name        String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  memberships Membership[]
+  auditLogs   AuditLog[]   @relation("ActorAuditLogs")
+}
+
+model Membership {
+  id          String           @id @default(cuid())
+  tenantId    String
+  userId      String
+  status      MembershipStatus @default(INVITED)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roles       MembershipRole[]
+  entitlements MembershipTier[]
+
+  @@unique([tenantId, userId])
+  @@index([tenantId])
+  @@index([userId])
+}
+
+model Role {
+  id          String            @id @default(cuid())
+  key         RoleKey           @unique
+  name        String
+  permissions RolePermission[]
+  memberships MembershipRole[]
+}
+
+model Permission {
+  id        String         @id @default(cuid())
+  key       PermissionKey  @unique
+  name      String
+  roles     RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model MembershipRole {
+  membershipId String
+  roleId       String
+
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([membershipId, roleId])
+}
+
+model ServiceTier {
+  id          String          @id @default(cuid())
+  key         ServiceTierKey   @unique
+  name        String
+  description String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  tenantTiers TenantTier[]
+}
+
+model TenantTier {
+  id        String      @id @default(cuid())
+  tenantId  String
+  tierId    String
+  enabled   Boolean     @default(true)
+
+  tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tier      ServiceTier @relation(fields: [tierId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, tierId])
+  @@index([tenantId])
+  @@index([tierId])
+}
+
+model MembershipTier {
+  id           String      @id @default(cuid())
+  membershipId  String
+  tierId        String
+  active        Boolean     @default(true)
+
+  membership    Membership  @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  tier          ServiceTier @relation(fields: [tierId], references: [id], onDelete: Cascade)
+
+  @@unique([membershipId, tierId])
+  @@index([membershipId])
+  @@index([tierId])
+}
+
+model IntakeSubmission {
+  id            String    @id @default(cuid())
+  tenantId      String?
+  email         String
+  answers       Json
+  intentScore   Int?
+  suggestedTier ServiceTierKey?
+  createdAt     DateTime  @default(now())
+
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  tenantId  String
+  key       String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  tenantId    String
+  actorUserId String?
+  action      String
+  subjectType String
+  subjectId   String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  actor       User?    @relation("ActorAuditLogs", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([actorUserId])
+}
