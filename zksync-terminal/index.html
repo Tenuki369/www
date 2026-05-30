@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ZKsync Terminal</title>
+  <style>
+    :root { --bg:#06070d; --panel:#0e1320; --panel2:#111827; --text:#eef2ff; --muted:#94a3b8; --line:#253044; --green:#6ee7b7; --blue:#60a5fa; --yellow:#facc15; --red:#fb7185; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: radial-gradient(circle at top left, rgba(96,165,250,.18), transparent 34%), var(--bg); color:var(--text); }
+    a { color:var(--blue); text-decoration:none; }
+    .wrap { max-width:1180px; margin:0 auto; padding:28px 18px 44px; }
+    header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:24px; }
+    h1 { margin:0; font-size:clamp(30px,5vw,56px); letter-spacing:-.05em; }
+    .sub { color:var(--muted); max-width:760px; line-height:1.6; margin-top:10px; }
+    .badge { border:1px solid var(--line); background:rgba(17,24,39,.75); padding:10px 14px; border-radius:999px; color:var(--green); font-weight:700; white-space:nowrap; }
+    .grid { display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap:14px; }
+    .card { background:linear-gradient(180deg, rgba(17,24,39,.96), rgba(14,19,32,.92)); border:1px solid var(--line); border-radius:22px; padding:18px; box-shadow:0 22px 70px rgba(0,0,0,.25); }
+    .card h2, .card h3 { margin:0 0 12px; letter-spacing:-.03em; }
+    .label { color:var(--muted); font-size:13px; text-transform:uppercase; letter-spacing:.08em; }
+    .value { font-size:28px; font-weight:800; margin-top:8px; word-break:break-word; }
+    .small { color:var(--muted); font-size:13px; margin-top:8px; line-height:1.5; }
+    .wide { grid-column: span 2; } .full { grid-column: 1 / -1; }
+    button, input { font:inherit; }
+    input { width:100%; border:1px solid var(--line); background:#090d16; color:var(--text); border-radius:14px; padding:13px 14px; outline:none; }
+    input:focus { border-color:var(--blue); }
+    button { border:0; background:linear-gradient(135deg, #2563eb, #7c3aed); color:white; padding:13px 16px; border-radius:14px; font-weight:800; cursor:pointer; }
+    button:disabled { opacity:.55; cursor:not-allowed; }
+    .lookup { display:grid; grid-template-columns:1fr auto; gap:10px; }
+    .rows { display:grid; gap:10px; }
+    .row { display:flex; justify-content:space-between; gap:14px; border-top:1px solid var(--line); padding-top:10px; color:var(--muted); }
+    .row strong { color:var(--text); text-align:right; word-break:break-word; }
+    .bars { display:flex; align-items:end; gap:7px; min-height:210px; padding-top:18px; }
+    .bar { flex:1; min-width:10px; background:linear-gradient(180deg, rgba(96,165,250,.95), rgba(110,231,183,.7)); border-radius:8px 8px 3px 3px; position:relative; }
+    .bar:hover::after { content:attr(data-tip); position:absolute; left:50%; transform:translateX(-50%); bottom:calc(100% + 8px); background:#030712; border:1px solid var(--line); color:var(--text); padding:7px 9px; border-radius:10px; white-space:nowrap; font-size:12px; z-index:2; }
+    .status { display:inline-flex; align-items:center; gap:8px; color:var(--green); font-weight:700; }
+    .dot { width:9px; height:9px; border-radius:50%; background:var(--green); box-shadow:0 0 18px var(--green); }
+    .error { color:var(--red); }
+    footer { margin-top:18px; color:var(--muted); font-size:13px; }
+    @media (max-width: 850px) { .grid{grid-template-columns:1fr;} .wide{grid-column:auto;} header{display:block;} .badge{display:inline-block;margin-top:16px;} .lookup{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div>
+        <h1>ZKsync Terminal</h1>
+        <p class="sub">Live ZKsync Era mainnet pulse: block height, gas, recent transaction activity, wallet or contract lookup, and explorer routing. No backend keys. Direct JSON-RPC reads from ZKsync Era.</p>
+      </div>
+      <div class="badge">Chain ID 324 · ETH</div>
+    </header>
+
+    <section class="grid">
+      <article class="card"><div class="label">Network</div><div class="value">ZKsync Era</div><div class="small status"><span class="dot"></span><span id="status">Connecting</span></div></article>
+      <article class="card"><div class="label">Latest Block</div><div class="value" id="block">--</div><div class="small" id="blockAge">Loading chain head</div></article>
+      <article class="card"><div class="label">Gas Price</div><div class="value" id="gas">--</div><div class="small">Native gas token: ETH</div></article>
+      <article class="card"><div class="label">RPC</div><div class="value" style="font-size:18px">mainnet.era.zksync.io</div><div class="small"><a href="https://explorer.zksync.io" target="_blank">Open explorer</a></div></article>
+
+      <article class="card wide">
+        <h2>Recent Block Pulse</h2>
+        <div class="small">Transactions per recent block. Hover bars for block and transaction count.</div>
+        <div class="bars" id="bars"></div>
+      </article>
+
+      <article class="card wide">
+        <h2>Address Lookup</h2>
+        <div class="lookup"><input id="address" placeholder="Paste wallet or contract address: 0x..." /><button id="lookupBtn">Lookup</button></div>
+        <div class="rows" style="margin-top:16px" id="lookupResult">
+          <div class="small">Enter any ZKsync wallet or contract address to fetch ETH balance, transaction count, bytecode status, and explorer link.</div>
+        </div>
+      </article>
+
+      <article class="card full">
+        <h2>Network Details</h2>
+        <div class="rows">
+          <div class="row"><span>Mainnet RPC</span><strong>https://mainnet.era.zksync.io</strong></div>
+          <div class="row"><span>WebSocket</span><strong>wss://mainnet.era.zksync.io/ws</strong></div>
+          <div class="row"><span>Explorer</span><strong>https://explorer.zksync.io</strong></div>
+          <div class="row"><span>Native Asset</span><strong>ETH</strong></div>
+        </div>
+      </article>
+    </section>
+    <footer>Built as a lightweight ZKsync terminal. Data is fetched client-side from public RPC and may be rate-limited by the endpoint.</footer>
+  </main>
+
+  <script>
+    const RPC = 'https://mainnet.era.zksync.io';
+    const EXPLORER = 'https://explorer.zksync.io';
+    const $ = (id) => document.getElementById(id);
+    const hexToNum = (hex) => Number.parseInt(hex || '0x0', 16);
+    const weiToEth = (hex) => {
+      const wei = BigInt(hex || '0x0');
+      const whole = wei / 1000000000000000000n;
+      const frac = (wei % 1000000000000000000n).toString().padStart(18, '0').slice(0, 6);
+      return `${whole}.${frac}`.replace(/\.0+$/, '');
+    };
+    async function rpc(method, params = []) {
+      const res = await fetch(RPC, { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({jsonrpc:'2.0', id:Date.now(), method, params}) });
+      const json = await res.json();
+      if (json.error) throw new Error(json.error.message || 'RPC error');
+      return json.result;
+    }
+    async function refresh() {
+      try {
+        $('status').textContent = 'Live';
+        $('status').className = '';
+        const [blockHex, gasHex] = await Promise.all([rpc('eth_blockNumber'), rpc('eth_gasPrice')]);
+        const latest = hexToNum(blockHex);
+        $('block').textContent = latest.toLocaleString();
+        $('gas').textContent = (Number(BigInt(gasHex) / 1000000n) / 1000).toLocaleString(undefined, {maximumFractionDigits:3}) + ' gwei';
+        $('blockAge').innerHTML = `<a target="_blank" href="${EXPLORER}/blocks/${latest}">View latest block</a>`;
+        const blocks = [];
+        for (let i = 13; i >= 0; i--) {
+          const block = await rpc('eth_getBlockByNumber', ['0x' + (latest - i).toString(16), false]);
+          blocks.push({ number: hexToNum(block.number), txs: block.transactions.length });
+        }
+        drawBars(blocks);
+      } catch (e) {
+        $('status').textContent = 'RPC error';
+        $('status').className = 'error';
+        $('blockAge').textContent = e.message;
+      }
+    }
+    function drawBars(blocks) {
+      const max = Math.max(1, ...blocks.map(b => b.txs));
+      $('bars').innerHTML = blocks.map(b => `<a class="bar" href="${EXPLORER}/blocks/${b.number}" target="_blank" data-tip="Block ${b.number}: ${b.txs} txs" style="height:${32 + (b.txs / max) * 170}px"></a>`).join('');
+    }
+    async function lookupAddress() {
+      const addr = $('address').value.trim();
+      if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) { $('lookupResult').innerHTML = '<div class="error">Enter a valid 0x address.</div>'; return; }
+      $('lookupBtn').disabled = true; $('lookupBtn').textContent = 'Checking';
+      try {
+        const [bal, nonce, code] = await Promise.all([rpc('eth_getBalance', [addr, 'latest']), rpc('eth_getTransactionCount', [addr, 'latest']), rpc('eth_getCode', [addr, 'latest'])]);
+        const type = code && code !== '0x' ? 'Contract' : 'Wallet / EOA';
+        $('lookupResult').innerHTML = `
+          <div class="row"><span>Type</span><strong>${type}</strong></div>
+          <div class="row"><span>ETH balance</span><strong>${weiToEth(bal)} ETH</strong></div>
+          <div class="row"><span>Transaction count</span><strong>${hexToNum(nonce).toLocaleString()}</strong></div>
+          <div class="row"><span>Explorer</span><strong><a target="_blank" href="${EXPLORER}/address/${addr}">Open address</a></strong></div>`;
+      } catch (e) { $('lookupResult').innerHTML = `<div class="error">${e.message}</div>`; }
+      finally { $('lookupBtn').disabled = false; $('lookupBtn').textContent = 'Lookup'; }
+    }
+    $('lookupBtn').addEventListener('click', lookupAddress);
+    $('address').addEventListener('keydown', (e) => { if(e.key === 'Enter') lookupAddress(); });
+    refresh(); setInterval(refresh, 30000);
+  </script>
+</body>
+</html>
